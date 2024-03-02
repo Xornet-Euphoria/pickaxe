@@ -12,6 +12,16 @@ class Crafter:
         self.payload += b
 
 
+    # experimental
+    def push(self, x):
+        if isinstance(x, int):
+            self.push_int(x)
+        elif isinstance(x, str):
+            self.push_str(x)
+        else:
+            raise ValueError(f"not supported type for auto push: {type(x)}")
+
+
     def push_int(self, n: int):
         if -2**31 <= n < 2**31:
             self._push_small_number(n)
@@ -63,18 +73,28 @@ class Crafter:
 
 
     def push_str(self, s: str):
-        length = len(s)
-        assert length < 2**32
+        data = s.encode("utf-8")
+        length = len(data)
 
         if length < 0x100:
-            self.add_payload(pickle.SHORT_BINSTRING)
+            self.add_payload(pickle.SHORT_BINUNICODE)
             self._add_number1(length)
-            self.add_payload(s.encode())
+            self.add_payload(data)
+            return
+        
+        if length < 2**32:
+            self.add_payload(pickle.BINUNICODE)
+            self._add_number4(length)
+            self.add_payload(data)
             return
 
-        self.add_payload(pickle.BINSTRING)
-        self.add_payload(length.to_bytes(4, "little"))
-        self.add_payload(s.encode())
+        # not tested
+        if length < 2**64:
+            self.add_payload(pickle.BINUNICODE8)
+            self.add_payload(length.to_bytes(8, "little"))
+            self.add_payload(data)
+
+        raise ValueError(f"Too long string ({length} bytes)")
 
 
     # utils about list, tuple and dict
