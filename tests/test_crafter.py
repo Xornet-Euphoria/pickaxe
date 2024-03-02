@@ -8,10 +8,6 @@ def wrap_push_int(n: int):
 
 
 def test_number():
-    assert wrap_push_int(1) == 1
-    assert wrap_push_int(0xdead) == 0xdead
-    assert wrap_push_int(114514) == 114514
-    assert wrap_push_int(0xdeadbeefcafebabe) == 0xdeadbeefcafebabe
-    assert wrap_push_int(-1) == -1
-    assert wrap_push_int(2**1024) == 2**1024
-    assert wrap_push_int(2**2040) == 2**2040
+    testcases = [1, 0xdead, 114514, 0xdeadbeefcafebabe, -1, 2**1024, -2**1024, 2**2040]
+    for x in testcases:
+        assert wrap_push_int(x) == x
