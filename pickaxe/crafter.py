@@ -25,12 +25,12 @@ class Crafter:
 
     # experimental
     def push(self, x):
-        if isinstance(x, int):
+        if isinstance(x, bool):
+            self.push_bool(x)
+        elif isinstance(x, int):
             self.push_int(x)
         elif isinstance(x, str):
             self.push_str(x)
-        elif isinstance(x, bool):
-            self.push_bool(x)
         else:
             raise ValueError(f"not supported type for auto push: {type(x)}")
         
