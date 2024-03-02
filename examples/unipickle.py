@@ -32,7 +32,7 @@ s1 = "os"
 s2 = "system"
 s3 = "/bin/sh"
 
-crafter = UnicodeCrafter()
+crafter = UnicodeCrafter(forbidden_bytes=[b" ", b"\n"])
 crafter.import_from(s1, s2)
 
 crafter.mark()

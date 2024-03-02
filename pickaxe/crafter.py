@@ -2,13 +2,17 @@ import pickle
 
 
 class Crafter:
-    def __init__(self, *, check_stop=False) -> None:
+    def __init__(self, *, forbidden_bytes: list[bytes] | list[int]=[], check_stop=False) -> None:
         self.payload = b""
+        self.forbidden_bytes = [b if isinstance(b, int) else b[0] for b in forbidden_bytes]
         self.check_stop = check_stop  # reserved and not implemented yet
 
 
     # self.payload += b の wrapperに過ぎないが、オーバーライドしてデバッグに使うといった用途を考えている
     def add_payload(self, b: bytes):
+        for _b in b:
+            if _b in self.forbidden_bytes:
+                raise ValueError(f"{_b.to_bytes(1, "little")} is forbidden")
         self.payload += b
 
 
