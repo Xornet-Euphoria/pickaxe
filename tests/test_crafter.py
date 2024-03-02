@@ -1,4 +1,20 @@
+import pickle
 import pickaxe
+
+
+def test_name_to_op():
+    import re
+    op_strs = [op for op in dir(pickle) if re.match("^[A-Z]{1}[A-Z0-9_]*$", op) and isinstance(getattr(pickle, op), bytes) and len(getattr(pickle, op)) == 1]
+
+    for op_str in op_strs:
+        assert pickaxe.name_to_op[op_str] == getattr(pickle, op_str)
+
+
+def test_add_op():
+    crafter = pickaxe.Crafter()
+    crafter.add_op("NEWTRUE")
+    res = crafter.loads(check_stop=True)
+    assert res
 
 
 def wrap_push_int(n: int):

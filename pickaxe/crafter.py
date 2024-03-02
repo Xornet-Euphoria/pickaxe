@@ -1,4 +1,5 @@
 import pickle
+from .pickle_opcode import name_to_op
 
 
 class Crafter:
@@ -14,6 +15,12 @@ class Crafter:
             if _b in self.forbidden_bytes:
                 raise ValueError(f"{_b.to_bytes(1, "little")} is forbidden")
         self.payload += b
+
+
+    def add_op(self, op_str: str):
+        if op_str not in name_to_op:
+            raise ValueError(f"{op_str} is not a pickle opcode")
+        self.add_payload(name_to_op[op_str])
 
 
     # experimental
