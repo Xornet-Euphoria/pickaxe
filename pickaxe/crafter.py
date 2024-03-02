@@ -193,10 +193,13 @@ class Crafter:
 
     # interfaces about payload
 
-    def get_payload(self, check_stop=False) -> bytes:
+    def get_payload(self, check_stop=False, *, check_function=None) -> bytes:
         if check_stop:
             if self.payload[-1] != ord(pickle.STOP):
                 self.stop()
+
+        if check_function is not None and not check_function(self.payload):
+            raise ValueError("Payload check is not passed")
 
         return self.payload
 
@@ -206,8 +209,8 @@ class Crafter:
         return l + 1 if with_stop else l
 
 
-    def loads(self, check_stop=False):
-        _payload = self.get_payload(check_stop)
+    def loads(self, check_stop=False, *, check_function=None):
+        _payload = self.get_payload(check_stop, check_function=check_function)
 
         res = pickle.loads(_payload)
         return res
