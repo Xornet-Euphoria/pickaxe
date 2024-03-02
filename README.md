@@ -6,6 +6,7 @@ Only tested in Python 3.12.0
 
 ## Todo
 
+- add tests
 - examples
   - solution of CTF challenges
   - size optimization ([Run Length Encoding (ja)](https://project-euphoria.dev/blog/pickle-run-length/))
