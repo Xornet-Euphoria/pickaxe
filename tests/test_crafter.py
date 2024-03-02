@@ -17,6 +17,18 @@ def test_add_op():
     assert res
 
 
+def wrap_push_bool(b: bool):
+    crafter = pickaxe.Crafter()
+    crafter.push_bool(b)
+    return crafter.loads(check_stop=True)
+
+
+def test_bool():
+    testcases = [True, False]
+    for b in testcases:
+        assert wrap_push_bool(b) == b
+
+
 def wrap_push_int(n: int):
     crafter = pickaxe.Crafter()
     crafter.push_int(n)

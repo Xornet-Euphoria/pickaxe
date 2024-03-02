@@ -29,8 +29,14 @@ class Crafter:
             self.push_int(x)
         elif isinstance(x, str):
             self.push_str(x)
+        elif isinstance(x, bool):
+            self.push_bool(x)
         else:
             raise ValueError(f"not supported type for auto push: {type(x)}")
+        
+
+    def push_bool(self, b: bool):
+        self.add_op("NEWTRUE") if b else self.add_op("NEWFALSE")
 
 
     def push_int(self, n: int):
