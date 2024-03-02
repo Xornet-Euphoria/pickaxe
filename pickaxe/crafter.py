@@ -55,12 +55,16 @@ class Crafter:
 
     # utils about list, tuple and dict
 
+    def tuple(self):
+        self.add_payload(pickle.TUPLE)
+
+
     def to_tuple(self, cnt: int=0, use_mark: bool=False):
         if cnt in range(0, 4) and not use_mark:
             self.add_payload(pickle._tuplesize2code[cnt])  # type: ignore
         else:
             # todo: check whether MARK(@) is used in the payload
-            self.add_payload(pickle.TUPLE)
+            self.tuple()
 
 
     # utils about objects that is not pickle-native (import, function and etc)
@@ -90,8 +94,14 @@ class Crafter:
         self.add_payload(pickle.REDUCE)
 
 
+    # simple wrappers
+
     def stop(self):
         self.add_payload(pickle.STOP)
+
+
+    def mark(self):
+        self.add_payload(pickle.MARK)
 
 
     # utils about memo
@@ -110,6 +120,25 @@ class Crafter:
 
         # todo: pickle.LONGBINGET
         self.add_payload(pickle.GET)
+        self._add_number(idx)
+        self._add_newline()
+
+
+    def put_memo(self, idx: int):
+        if idx < 0:
+            raise ValueError("index must not be negative")
+        
+        if idx < 0x100:
+            self.add_payload(pickle.BINPUT)
+            self._add_number1(idx)
+            return
+        
+        if idx < 2**32:
+            self.add_payload(pickle.LONG_BINPUT)
+            self._add_number4(idx)
+            return
+        
+        self.add_payload(pickle.PUT)
         self._add_number(idx)
         self._add_newline()
 
