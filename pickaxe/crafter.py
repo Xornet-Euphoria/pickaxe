@@ -13,8 +13,31 @@ class Crafter:
 
 
     def push_int(self, n: int):
-        if n < 0:
-            raise NotImplementedError("positive only")
+        if -2**31 <= n < 2**31:
+            self._push_small_number(n)
+            return
+        
+        b = pickle.encode_long(n)
+        length = len(b)
+        if length < 256:
+            self.add_payload(pickle.LONG1)
+            self._add_number1(length)
+        else:
+            self.add_payload(pickle.LONG4)
+            self._add_number4(length)
+
+        self.add_payload(b)
+
+
+    def _push_small_number(self, n: int, check=False):
+        if check and (n < -2**31 or 2**31-1 < n):
+            raise ValueError("small integer only")
+        
+        if n < 0 or 0xffff < n:
+            self.add_payload(pickle.BININT)
+            self._add_number_to_bytes(n, 4, signed=True)
+            return
+
         if n < 0x100:
             self._push_int1(n)
             return
@@ -22,10 +45,6 @@ class Crafter:
         if n < 0x10000:
             self._push_int2(n)
             return
-
-        # todo: 4byte integer
-
-        raise NotImplementedError("1 or 2 byte integer only")
 
 
     def _push_int1(self, n: int):
@@ -36,6 +55,11 @@ class Crafter:
     def _push_int2(self, n: int):
         self.add_payload(pickle.BININT2)
         self._add_number2(n)
+
+
+    def _push_int4(self, n: int):
+        self.add_payload(pickle.BININT)
+        self._add_number4(n)
 
 
     def push_str(self, s: str):
@@ -190,5 +214,5 @@ class Crafter:
         self._add_number_to_bytes(n, 4)
 
 
-    def _add_number_to_bytes(self, n: int, length: int):
-        self.add_payload(n.to_bytes(length, "little"))
+    def _add_number_to_bytes(self, n: int, length: int, *, signed=False):
+        self.add_payload(n.to_bytes(length, "little", signed=signed))
