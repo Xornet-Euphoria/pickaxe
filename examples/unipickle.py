@@ -7,7 +7,7 @@ import pickaxe
 
 class UnicodeCrafter(pickaxe.Crafter):
     # override this method
-    # because pickle.SHORT_BINUNICODE is b'\x8c' and may raises UnicodeDecodeError
+    # because pickle.SHORT_BINUNICODE is b'\x8c' and may raise UnicodeDecodeError
     def push_str(self, s):
         data = s.encode("utf-8")
         length = len(data)
@@ -39,7 +39,7 @@ crafter.mark()
 crafter.push(s3)
 crafter.call_f(1, use_mark=True)
 
-# if invalid utf-8 string, this function causes UnicodeDecodeError (not ValueError in crafter.get_payload)
+# if payload is invalid utf-8 string, this function causes UnicodeDecodeError (not ValueError in crafter.get_payload)
 check_f = lambda x: len(x.decode("utf-8").split()) == 1
 
 

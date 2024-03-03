@@ -17,6 +17,8 @@ class Crafter:
         self.payload += b
 
 
+    # shorten?
+    # self.add_payload(pickle.<OP>) vs self.add_op("<OP>")
     def add_op(self, op_str: str):
         if op_str not in name_to_op:
             raise ValueError(f"{op_str} is not a pickle opcode")
@@ -167,7 +169,6 @@ class Crafter:
 
     # utils about memo
     # todo: emulate memo and estimate index in memoize
-    # todo: put_memo
 
     def memoize(self):
         self.add_payload(pickle.MEMOIZE)
