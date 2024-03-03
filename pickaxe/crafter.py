@@ -207,14 +207,15 @@ class Crafter:
     # interfaces about payload
 
     def get_payload(self, check_stop=False, *, check_function=None) -> bytes:
+        ret = self.payload
         if check_stop:
-            if self.payload[-1] != ord(pickle.STOP):
-                self.stop()
+            if ret[-1] != pickle.STOP[0]:
+                ret += pickle.STOP
 
-        if check_function is not None and not check_function(self.payload):
+        if check_function is not None and not check_function(ret):
             raise ValueError("Payload check is not passed")
 
-        return self.payload
+        return ret
 
 
     def get_length(self, with_stop: bool=False) -> int:
