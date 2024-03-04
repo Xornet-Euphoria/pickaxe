@@ -1,4 +1,5 @@
 import pickle
+import pickletools
 from .pickle_opcode import name_to_op
 
 
@@ -238,6 +239,20 @@ class Crafter:
 
         res = pickle.loads(_payload)
         return res
+    
+
+    # experimental
+    # pickle.STOP is added.
+    def disassemble(self):
+        pickletools.dis(self.get_payload(check_stop=True))
+
+
+    def disasm(self):
+        self.disassemble()
+
+
+    def dis(self):
+        self.disassemble()
 
 
     def clear(self):
@@ -295,3 +310,14 @@ class AsciiCrafter(Crafter):
         s = f"'{s}'"
         self.add_payload(s.encode())
         self._add_newline()
+
+
+    # use_mark is ignored
+    def to_tuple(self, cnt: int = 0, use_mark: bool=True):
+        self.tuple()
+
+
+    # use_stack is ignored
+    def import_from(self, module: str, name: str, *, use_stack=False):
+        return super().import_from(module, name, use_stack=False)
+
