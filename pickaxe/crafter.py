@@ -20,9 +20,14 @@ class Crafter:
     # shorten?
     # self.add_payload(pickle.<OP>) vs self.add_op("<OP>")
     def add_op(self, op_str: str):
+        op_str = op_str.upper()
         if op_str not in name_to_op:
             raise ValueError(f"{op_str} is not a pickle opcode")
         self.add_payload(name_to_op[op_str])
+
+
+    def pop(self):
+        self.add_op("POP")
 
 
     # experimental
@@ -128,6 +133,10 @@ class Crafter:
         else:
             # todo: check whether MARK(@) is used in the payload
             self.tuple()
+
+
+    def empty_dict(self):
+        self.add_op("EMPTY_DICT")
 
 
     # utils about objects that is not pickle-native (import, function and etc)
