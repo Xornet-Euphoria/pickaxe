@@ -11,7 +11,7 @@ def test_ascii_printable():
 def wrap_push_bool(b: bool):
     crafter = pickaxe.AsciiCrafter()
     crafter.push_bool(b)
-    return crafter.loads(check_stop=True)
+    return crafter.loads()
 
 
 def test_bool():
@@ -23,7 +23,7 @@ def test_bool():
 def wrap_push_int(n: int):
     crafter = pickaxe.AsciiCrafter()
     crafter.push_int(n)
-    return crafter.loads(check_stop=True)
+    return crafter.loads()
 
 
 def test_number():
@@ -35,7 +35,7 @@ def test_number():
 def wrap_push_str(s: str):
     crafter = pickaxe.AsciiCrafter()
     crafter.push_str(s)
-    return crafter.loads(check_stop=True)
+    return crafter.loads()
 
 
 def test_string():

@@ -13,14 +13,14 @@ def test_name_to_op():
 def test_add_op():
     crafter = pickaxe.Crafter()
     crafter.add_op("NEWTRUE")
-    res = crafter.loads(check_stop=True)
+    res = crafter.loads()
     assert res
 
 
 def wrap_push_bool(b: bool):
     crafter = pickaxe.Crafter()
     crafter.push_bool(b)
-    return crafter.loads(check_stop=True)
+    return crafter.loads()
 
 
 def test_bool():
@@ -32,7 +32,7 @@ def test_bool():
 def wrap_push_int(n: int):
     crafter = pickaxe.Crafter()
     crafter.push_int(n)
-    return crafter.loads(check_stop=True)
+    return crafter.loads()
 
 
 def test_number():
@@ -44,7 +44,7 @@ def test_number():
 def wrap_push_str(s: str):
     crafter = pickaxe.Crafter()
     crafter.push_str(s)
-    return crafter.loads(check_stop=True)
+    return crafter.loads()
 
 
 def test_string():
@@ -56,7 +56,7 @@ def test_string():
 def wrap_push(x):
     crafter = pickaxe.Crafter()
     crafter.push(x)
-    return crafter.loads(check_stop=True)
+    return crafter.loads()
 
 
 def test_auto_push():

@@ -234,7 +234,8 @@ class Crafter:
         return l + 1 if with_stop else l
 
 
-    def loads(self, check_stop=False, *, check_function=None):
+    # note: Unlike get_payload(), the default value of check_stop is True
+    def loads(self, check_stop=True, *, check_function=None):
         _payload = self.get_payload(check_stop, check_function=check_function)
 
         res = pickle.loads(_payload)

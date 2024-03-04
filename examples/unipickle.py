@@ -44,8 +44,7 @@ check_f = lambda x: len(x.decode("utf-8").split()) == 1
 
 
 try:
-    payload = crafter.get_payload(check_stop=True, check_function=check_f)
+    payload = crafter.loads(check_function=check_f)
     # pop a shell
-    pickle.loads(payload)
 except Exception as ex:
-    print("????", payload, ex)
+    print("????", crafter.get_payload(check_stop=True), ex)
