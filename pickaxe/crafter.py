@@ -267,3 +267,31 @@ class Crafter:
 
     def _add_number_to_bytes(self, n: int, length: int, *, signed=False):
         self.add_payload(n.to_bytes(length, "little", signed=signed))
+
+
+# the payload has only ascii-printable characters
+class AsciiCrafter(Crafter):
+    def __init__(self, *, forbidden_bytes: list[bytes] | list[int] = [], check_stop=False) -> None:
+        forbidden_bytes += [b.to_bytes(1, "little") for b in range(0x80, 0x100)]
+        super().__init__(forbidden_bytes=forbidden_bytes, check_stop=check_stop)
+
+
+    # todo: rewrite some methods
+    def push_bool(self, b: bool):
+        self.add_op("INT")
+        self.add_payload(b"01" if b else b"00")
+        self._add_newline()
+
+
+    def push_int(self, n: int):
+        self.add_op("INT")
+        self.add_payload(str(n).encode())
+        self._add_newline()
+
+
+    # not optimized
+    def push_str(self, s: str):
+        self.add_op("STRING")
+        s = f"'{s}'"
+        self.add_payload(s.encode())
+        self._add_newline()
