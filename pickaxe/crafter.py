@@ -322,3 +322,48 @@ class AsciiCrafter(Crafter):
     def import_from(self, module: str, name: str, *, use_stack=False):
         return super().import_from(module, name, use_stack=False)
 
+
+class UnicodeCrafter(Crafter):
+    # override this method
+    # because pickle.SHORT_BINUNICODE is b'\x8c' and may raise UnicodeDecodeError
+    def push_str(self, s: str):
+        data = s.encode("utf-8")
+        length = len(data)
+
+        if length < 0x100:
+            self.add_payload(pickle.SHORT_BINSTRING)
+            self._add_number1(length)
+            self.add_payload(data)
+            return
+        
+        if length < 2**32:
+            self.add_payload(pickle.BINSTRING)
+            self._add_number4(length)
+            self.add_payload(data)
+            return
+
+
+        # not tested
+        self.add_op("STRING")
+        self.add_payload(b"'")
+        self.add_payload(data)
+        self.add_payload(b"'")
+        self._add_newline()
+
+
+    def stack_global(self):
+        # u"\c293"
+        self.put_memo(0xc2)  # no effect to stack
+        self.add_payload(pickle.STACK_GLOBAL)
+
+
+    def import_from(self, module: str, name: str, *, use_stack=True):
+        self.push(module)
+        self.push(name)
+        self.stack_global()
+
+
+    def get_payload(self, check_stop=False, *, check_function=None) -> bytes:
+        # if payload is invalid bytes, this function raises UnicodeDecodeError
+        check_function = lambda x: x.decode("utf-8")
+        return super().get_payload(check_stop, check_function=check_function)
