@@ -66,3 +66,9 @@ def test_auto_push():
     
     for x in testcases:
         assert wrap_push(x) == x
+
+
+def test_import_from():
+    crafter = pickaxe.Crafter()
+    crafter.import_from("builtins", "id")
+    assert crafter.loads() == id
