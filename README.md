@@ -2,7 +2,7 @@
 
 Pickle hand assembler (WIP)
 
-Only tested in Python 3.12.0
+Tested in Python 3.11.8
 
 ## Usage
 
