@@ -14,7 +14,7 @@ class Crafter:
     def add_payload(self, b: bytes):
         for _b in b:
             if _b in self.forbidden_bytes:
-                raise ValueError(f"{_b.to_bytes(1, "little")} is forbidden")
+                raise ValueError(f"{_b.to_bytes(1, 'little')} is forbidden")
         self.payload += b
 
 
