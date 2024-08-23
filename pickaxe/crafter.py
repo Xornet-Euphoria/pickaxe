@@ -29,6 +29,10 @@ class Crafter:
 
     def pop(self):
         self.add_op("POP")
+    
+
+    def dup(self):
+        self.add_op("DUP")
 
 
     # experimental
