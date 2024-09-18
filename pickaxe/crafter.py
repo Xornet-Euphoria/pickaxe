@@ -1,6 +1,6 @@
 import pickle
 import pickletools
-from .pickle_opcode import name_to_op
+from .pickle_opcode import name_to_op, OpStr
 
 
 class Crafter:
@@ -20,7 +20,7 @@ class Crafter:
 
     # shorten?
     # self.add_payload(pickle.<OP>) vs self.add_op("<OP>")
-    def add_op(self, op_str: str):
+    def add_op(self, op_str: OpStr):
         op_str = op_str.upper()
         if op_str not in name_to_op:
             raise ValueError(f"{op_str} is not a pickle opcode")
