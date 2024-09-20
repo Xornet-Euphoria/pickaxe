@@ -2,7 +2,7 @@ from pickle import _Unpickler
 from pickletools import code2op, OpcodeInfo # type: ignore
 from typing import Any, Iterable, Callable, Self
 import io, pickle, struct
-from pickle_opcode import change_stack, change_memo
+from .pickle_opcode import change_stack, change_memo
 
 # todo
 """
@@ -152,18 +152,3 @@ class CustomUnpickler(_Unpickler):
     # maybe useless
     def flush_read_buf(self):
         self.read_buf = None
-
-
-# test
-if __name__ == "__main__":
-    from pickle import dumps
-    import pickletools
-    payload = dumps({1: 1337, "2": 3.14, "asdf": "qwer"})
-    up = CustomUnpickler(payload)
-
-    pickletools.dis(payload)
-
-    print("=" * 0x40)
-
-    res = up.load()
-    print(res)
