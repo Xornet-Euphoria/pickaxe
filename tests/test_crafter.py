@@ -7,7 +7,7 @@ def test_name_to_op():
     op_strs = [op for op in dir(pickle) if re.match("^[A-Z]{1}[A-Z0-9_]*$", op) and isinstance(getattr(pickle, op), bytes) and len(getattr(pickle, op)) == 1]
 
     for op_str in op_strs:
-        assert pickaxe.name_to_op[op_str] == getattr(pickle, op_str)
+        assert pickaxe.name_to_op[op_str].code.encode("latin-1") == getattr(pickle, op_str)
 
 
 def test_add_op():

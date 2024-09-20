@@ -24,7 +24,7 @@ class Crafter:
         op_str = op_str.upper()
         if op_str not in name_to_op:
             raise ValueError(f"{op_str} is not a pickle opcode")
-        self.add_payload(name_to_op[op_str])
+        self.add_payload(name_to_op[op_str].code.encode("latin-1"))
 
 
     def pop(self):
