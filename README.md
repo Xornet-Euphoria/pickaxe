@@ -14,8 +14,6 @@ Tested in Python 3.11.8
 
 See [examples](./examples/)
 
-(sorry, there is no examples of custom unpickler yet)
-
 ## Todo
 
 - add tests (especially custom unpickler)
