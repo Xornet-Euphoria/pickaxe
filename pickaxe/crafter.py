@@ -21,10 +21,10 @@ class Crafter:
     # shorten?
     # self.add_payload(pickle.<OP>) vs self.add_op("<OP>")
     def add_op(self, op_str: OpStr):
-        op_str = op_str.upper()
+        op_str = op_str.upper()  # type: ignore
         if op_str not in name_to_op:
             raise ValueError(f"{op_str} is not a pickle opcode")
-        self.add_payload(name_to_op[op_str])
+        self.add_payload(name_to_op[op_str].code.encode("latin-1"))
 
 
     def pop(self):
@@ -292,7 +292,7 @@ class Crafter:
 # the payload has only ascii-printable characters
 class AsciiCrafter(Crafter):
     def __init__(self, *, forbidden_bytes: list[bytes] | list[int] = [], check_stop=False) -> None:
-        forbidden_bytes += [b.to_bytes(1, "little") for b in range(0x80, 0x100)]
+        forbidden_bytes += [b.to_bytes(1, "little") for b in range(0x80, 0x100)]  # type: ignore
         super().__init__(forbidden_bytes=forbidden_bytes, check_stop=check_stop)
 
 

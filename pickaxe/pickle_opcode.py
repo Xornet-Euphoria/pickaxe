@@ -6,7 +6,21 @@ OpStr = typing.Literal['INT', 'BININT', 'BININT1', 'BININT2', 'LONG', 'LONG1', '
 
 
 all_ops = pickletools.opcodes
-name_to_op = {op.name: op.code.encode("latin-1") for op in all_ops}
+name_to_op = {op.name: op for op in all_ops}
+
+
+def change_stack(op: pickletools.OpcodeInfo):
+    stack_before = op.stack_before
+    stack_after = op.stack_after
+
+    return stack_before != stack_after
+
+
+change_memo_ops = {
+    name_to_op[op_str] for op_str in ["PUT", "BINPUT", "LONG_BINPUT", "MEMOIZE"]
+}
+def change_memo(op: pickletools.OpcodeInfo):
+    return op in change_memo_ops
 
 
 if __name__ == "__main__":
