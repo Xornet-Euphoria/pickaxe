@@ -7,6 +7,7 @@ from .pickle_opcode import change_stack, change_memo
 # todo
 """
 - protocol for typing
+- breakpoint
 - abstraction of stack operations (push or pop)
 - abstraction of events
 - custom formatter for pre and post hook functions
