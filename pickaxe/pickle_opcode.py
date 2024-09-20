@@ -9,7 +9,7 @@ all_ops = pickletools.opcodes
 name_to_op = {op.name: op for op in all_ops}
 
 
-def is_change_stack(op: pickletools.OpcodeInfo):
+def change_stack(op: pickletools.OpcodeInfo):
     stack_before = op.stack_before
     stack_after = op.stack_after
 
@@ -19,7 +19,7 @@ def is_change_stack(op: pickletools.OpcodeInfo):
 change_memo_ops = {
     name_to_op[op_str] for op_str in ["PUT", "BINPUT", "LONG_BINPUT", "MEMOIZE"]
 }
-def is_change_memo(op: pickletools.OpcodeInfo):
+def change_memo(op: pickletools.OpcodeInfo):
     return op in change_memo_ops
 
 
