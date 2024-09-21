@@ -3,16 +3,20 @@ from pickaxe import CustomUnpickler
 
 # define new hook function
 # don't forget using original method
-def load_proto(self):
-    CustomUnpickler.load_proto(self)
-    print(f"  - protocol: {self.proto}")
+class MyCustomUnpickler(CustomUnpickler):
+    def load_proto(self):
+        print("trigger custom hook")
+        super().load_proto()
+
+        # get protocol number from reading bytes
+        proto = int.from_bytes(self.read_buf, "little")
+        print(f"  - proto: {proto}")
 
 
 if __name__ == "__main__":
     import pickletools, pickle
     payload = pickle.dumps({1: 1337, "2": 3.14, "asdf": "qwer"})
-    # set new hook functions
-    up = CustomUnpickler(payload, custom_dispatch_table={pickle.PROTO[0]: load_proto})
+    up = MyCustomUnpickler(payload)
 
     pickletools.dis(payload)
 

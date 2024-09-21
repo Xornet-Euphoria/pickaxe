@@ -32,7 +32,7 @@ class CustomUnpickler(_Unpickler):
         self._breakpoints = []
         self._ip = 0
 
-        self.read_buf: bytes | None = None
+        self.read_buf: bytes = b""
         self._memo_ctx: tuple[int, Any] | None = None
 
         self.original_dispatch = {opcode: original_f for opcode, original_f in _Unpickler.dispatch.items()}
@@ -163,7 +163,6 @@ class CustomUnpickler(_Unpickler):
         # calculate the start position of a frame
         self.current_frame_idx = self._file.tell() + 8
         super().load_frame() # type: ignore
-        assert self.read_buf is not None
         frame_size, = struct.unpack("<Q", self.read_buf)
         print(f"  - frame size: {frame_size}")
 
@@ -178,4 +177,4 @@ class CustomUnpickler(_Unpickler):
 
     # maybe useless
     def flush_read_buf(self):
-        self.read_buf = None
+        self.read_buf = b""
