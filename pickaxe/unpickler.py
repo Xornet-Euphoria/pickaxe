@@ -7,10 +7,10 @@ from .pickle_opcode import change_stack, change_memo
 # todo
 """
 - protocol for typing
-- breakpoint
 - abstraction of stack operations (push or pop)
 - abstraction of events
 - custom formatter for pre and post hook functions
+- settings (verbose, suppress long output)
 """
 
 
@@ -29,6 +29,8 @@ class CustomUnpickler(_Unpickler):
         # todo: make them private
         self._file = file
         self.current_frame_idx = 0  # used for calculation of the index
+        self._breakpoints = []
+        self._ip = 0
 
         self.read_buf: bytes | None = None
         self._memo_ctx: tuple[int, Any] | None = None
@@ -38,6 +40,16 @@ class CustomUnpickler(_Unpickler):
         self.create_custom_dispatch_table(defined_table=custom_dispatch_table)
 
         super().__init__(file, fix_imports=fix_imports, encoding=encoding, errors=errors, buffers=buffers)
+
+
+    @property
+    def breakpoints(self) -> list[int]:
+        return self._breakpoints
+    
+
+    @property
+    def ip(self) -> int:
+        return self._ip
 
     
     setattr_target = {"read", "readinto", "readline"}
@@ -81,6 +93,18 @@ class CustomUnpickler(_Unpickler):
             dump_stack = change_stack(op)
             dump_memo = change_memo(op)
 
+            unframer = self._unframer # type: ignore
+            current_frame = unframer.current_frame
+            in_frame = current_frame is not None
+
+            ip = self.current_frame_idx + current_frame.tell() if in_frame else self._file.tell()
+            ip -= 1  # subtract size of opcode
+
+            self._ip = ip
+
+            if self._ip in self._breakpoints:
+                self.breakpoint_hook()
+
             pre_hook(op, dump_stack=dump_stack)
             internal_func(self)
             post_hook(op, dump_stack=dump_stack)
@@ -90,14 +114,7 @@ class CustomUnpickler(_Unpickler):
 
     def default_pre_hook(self, op: OpcodeInfo, *,
                          dump_stack=False):
-        unframer = self._unframer # type: ignore
-        current_frame = unframer.current_frame
-        in_frame = current_frame is not None
-
-        ip = self.current_frame_idx + current_frame.tell() if in_frame else self._file.tell()
-        ip -= 1  # subtract size of opcode
-
-        print(f"[{ip}]: {op.name}")
+        print(f"[{self._ip}]: {op.name}")
         if dump_stack:
             print(f"  - [STACK (before)]: {self.stack}")
 
@@ -132,6 +149,15 @@ class CustomUnpickler(_Unpickler):
 
         return data
     
+
+    def set_breakpoint(self, idx: int) -> None:
+        self._breakpoints.append(idx)
+
+
+    # if you want to set custom hook function, override this
+    def breakpoint_hook(self):
+        print(f"[BREAKPOINT] {self._ip}")
+
 
     def load_frame(self):
         # calculate the start position of a frame
