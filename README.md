@@ -10,6 +10,10 @@ My pickle arsenal
 
 Tested in Python 3.11.8
 
+## Install
+
+`python -m pip install git+https://github.com/Xornet-Euphoria/pickaxe`
+
 ## Usage
 
 See [examples](./examples/)
