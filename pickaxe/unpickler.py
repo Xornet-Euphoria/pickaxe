@@ -64,7 +64,7 @@ class CustomUnpickler(_Unpickler):
         self.dispatch[key] = func
     
 
-    def create_custom_dispatch_table(self, *, defined_table: dict[int, UnpicklerMethod]={}, pre_hook=None, post_hook=None):
+    def create_custom_dispatch_table(self, *, defined_table: dict[int, UnpicklerMethod]={}):
         for opcode in _Unpickler.dispatch:
             # get overwridden method
             original_method = self.original_dispatch[opcode]
@@ -76,18 +76,12 @@ class CustomUnpickler(_Unpickler):
             else:
                 internal_func = defined_table[opcode]
 
-            if pre_hook is None:
-                pre_hook = self.default_pre_hook
-
-            if post_hook is None:
-                post_hook = self.default_post_hook
-
-            hook_func = self.create_hook(opcode, internal_func, pre_hook, post_hook)
+            hook_func = self.create_hook(opcode, internal_func)
 
             self.set_hook(opcode, hook_func)
 
     
-    def create_hook(self, key: int, internal_func, pre_hook, post_hook):
+    def create_hook(self, key: int, internal_func):
         def hook(self: Self):
             op = code2op[chr(key)]
             dump_stack = change_stack(op)
@@ -105,21 +99,24 @@ class CustomUnpickler(_Unpickler):
             if self._ip in self._breakpoints:
                 self.breakpoint_hook()
 
-            pre_hook(op, dump_stack=dump_stack)
+            self.pre_hook(op, dump_stack=dump_stack)
             internal_func(self)
-            post_hook(op, dump_stack=dump_stack)
+            self.post_hook(op, dump_stack=dump_stack)
 
         return hook
 
 
-    def default_pre_hook(self, op: OpcodeInfo, *,
+    # if you want to set a custom pre-hook function
+    # override this
+    def pre_hook(self, op: OpcodeInfo, *,
                          dump_stack=False):
         print(f"[{self._ip}]: {op.name}")
         if dump_stack:
             print(f"  - [STACK (before)]: {self.stack}")
 
-
-    def default_post_hook(self, op: OpcodeInfo, *,
+    # if you want to set a custom post-hook function
+    # override this
+    def post_hook(self, op: OpcodeInfo, *,
                           dump_stack=False):
         if dump_stack:
             print(f"  - [STACK (after)]: {self.stack}")
