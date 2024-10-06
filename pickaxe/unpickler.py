@@ -29,7 +29,7 @@ class CustomUnpickler(_Unpickler):
         # todo: make them private
         self._file = file
         self.current_frame_idx = 0  # used for calculation of the index
-        self._breakpoints = []
+        self._breakpoint_table = {}
         self._ip = 0
 
         self.read_buf: bytes = b""
@@ -43,8 +43,8 @@ class CustomUnpickler(_Unpickler):
 
 
     @property
-    def breakpoints(self) -> list[int]:
-        return self._breakpoints
+    def breakpoints(self) -> dict[int, Callable[[Self], None]]:
+        return self._breakpoint_table
     
 
     @property
@@ -96,8 +96,8 @@ class CustomUnpickler(_Unpickler):
 
             self._ip = ip
 
-            if self._ip in self._breakpoints:
-                self.breakpoint_hook()
+            if self._ip in self._breakpoint_table:
+                self._breakpoint_table[self.ip](self)
 
             self.pre_hook(op, dump_stack=dump_stack)
             internal_func(self)
@@ -147,13 +147,22 @@ class CustomUnpickler(_Unpickler):
         return data
     
 
-    def set_breakpoint(self, idx: int) -> None:
-        self._breakpoints.append(idx)
+    def set_breakpoint(self, idx: int, f=None) -> None:
+        if f is None:
+            f = CustomUnpickler.default_breakpoint_hook
+        
+        self._breakpoint_table[idx] = f
 
 
     # if you want to set custom hook function, override this
     def breakpoint_hook(self):
         print(f"[BREAKPOINT] {self._ip}")
+
+
+    @staticmethod
+    def default_breakpoint_hook(_self):
+        print(f"[BREAKPOINT] {_self.ip}")
+        print("[*] currently, this hook does nothing")
 
 
     def load_frame(self):
