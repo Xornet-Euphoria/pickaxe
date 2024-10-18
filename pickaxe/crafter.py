@@ -43,6 +43,8 @@ class Crafter:
             self.push_int(x)
         elif isinstance(x, str):
             self.push_str(x)
+        elif isinstance(x, bytes):
+            self.push_bytes(x)
         else:
             raise ValueError(f"not supported type for auto push: {type(x)}")
         
@@ -124,6 +126,26 @@ class Crafter:
             self.add_payload(data)
 
         raise ValueError(f"Too long string ({length} bytes)")
+
+
+    def _push_short_bytes(self, b: bytes):
+        l = len(b)
+        if l > 0xff:
+            raise ValueError("byte-length must be shorter than 0x100")
+
+        self.add_op("SHORT_BINBYTES")
+        self._add_number1(l)
+        self.add_payload(b)
+
+
+    def push_bytes(self, b: bytes):
+        l = len(b)
+        if l < 0x100:
+            self._push_short_bytes(b)
+        else:
+            self.add_op("BINBYTES")
+            self._add_number4(l)
+            self.add_payload(b)
 
 
     # utils about list, tuple and dict
