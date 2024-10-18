@@ -203,6 +203,16 @@ class Crafter:
         self.add_payload(pickle.MARK)
 
 
+    def proto(self, proto=pickle.DEFAULT_PROTOCOL):
+        self.add_op("PROTO")
+        if proto > 0xff:
+            raise ValueError("The protocol number must be 1 byte")
+        if proto < 0:
+            raise ValueError("The protocol number must not be a negative number")
+        
+        self._add_number1(proto)
+
+
     # utils about memo
     # todo: emulate memo and estimate index in memoize
 
