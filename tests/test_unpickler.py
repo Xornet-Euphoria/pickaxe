@@ -136,3 +136,17 @@ def test_trace_output_can_use_callable_writer():
     assert up.load() == TEST_OBJECT
     assert len(lines) == 1
     assert lines[0].startswith("  - frame size: ")
+
+
+def test_trace_output_can_use_file_writer(tmp_path):
+    trace_path = tmp_path / "trace.log"
+
+    with trace_path.open("w", encoding="utf-8") as trace_file:
+        up = pickaxe.CustomUnpickler(
+            TEST_PAYLOAD,
+            trace_output=trace_file,
+            trace_events={"frame"},
+        )
+        assert up.load() == TEST_OBJECT
+
+    assert trace_path.read_text(encoding="utf-8").splitlines() == ["  - frame size: 37"]
