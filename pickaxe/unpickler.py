@@ -5,12 +5,12 @@ from typing import Any, Iterable, Callable, Self, Literal, TypeAlias
 import io, struct, sys
 from .pickle_opcode import change_stack
 
-# todo
+# TODO
 """
-- protocol for typing
-- abstraction of stack operations (push or pop)
-- custom formatter for pre and post hook functions
-- settings (verbose, suppress long output)
+- typing protocol
+- abstraction for stack operations (push/pop)
+- custom formatter helpers for pre/post hooks
+- verbosity settings and long-output suppression
 """
 
 
@@ -55,14 +55,14 @@ class CustomUnpickler(_Unpickler):
         if custom_dispatch_table is None:
             custom_dispatch_table = {}
 
-        # typing
+        # Keep dispatch instance-local while preserving useful type hints.
         self.dispatch = {opcode: original_f for opcode, original_f in _Unpickler.dispatch.items()}
         self.stack: list[Any]
         self.memo: dict[int, Any]
 
-        # todo: make them private
+        # TODO: make these private.
         self._file = file
-        self.current_frame_idx = 0  # used for calculation of the index
+        self.current_frame_idx = 0  # Used to calculate the absolute opcode index.
         self._breakpoint_table = {}
         self._ip = 0
         self._current_op: OpcodeInfo | None = None
@@ -157,7 +157,7 @@ class CustomUnpickler(_Unpickler):
             return f"  - [STACK (after)]: {event.stack}"
 
         if event.kind == "memo":
-            return f"  - [NEW MEMO ({event.memo_index})]: {event.memo_value}"
+            return f"  - [MEMO ({event.memo_index})]: {event.memo_value}"
 
         if event.kind == "frame":
             return f"  - frame size: {event.frame_size}"
@@ -177,7 +177,7 @@ class CustomUnpickler(_Unpickler):
             defined_table = {}
 
         for opcode in _Unpickler.dispatch:
-            # get overwridden method
+            # Resolve the overridden method for this opcode.
             original_method = self.original_dispatch[opcode]
             method_name = original_method.__name__
             current_method = getattr(self.__class__, method_name)
@@ -202,7 +202,7 @@ class CustomUnpickler(_Unpickler):
             in_frame = current_frame is not None
 
             ip = self.current_frame_idx + current_frame.tell() if in_frame else self._file.tell()
-            ip -= 1  # subtract size of opcode
+            ip -= 1  # Subtract the size of the opcode itself.
 
             self._ip = ip
             self._current_op = op
@@ -217,16 +217,14 @@ class CustomUnpickler(_Unpickler):
         return hook
 
 
-    # if you want to set a custom pre-hook function
-    # override this
+    # Override this to customize the pre-hook.
     def pre_hook(self, op: OpcodeInfo, *,
                          dump_stack=False):
         self.emit_trace_event(TraceEvent(kind="opcode", ip=self._ip, op=op))
         if dump_stack:
             self.emit_trace_event(TraceEvent(kind="stack_before", ip=self._ip, op=op, stack=list(self.stack)))
 
-    # if you want to set a custom post-hook function
-    # override this
+    # Override this to customize the post-hook.
     def post_hook(self, op: OpcodeInfo, *,
                           dump_stack=False):
         if dump_stack:
@@ -273,7 +271,7 @@ class CustomUnpickler(_Unpickler):
         self._breakpoint_table[idx] = f
 
 
-    # if you want to set custom hook function, override this
+    # Override this to customize breakpoint handling.
     def breakpoint_hook(self):
         self.emit_trace_event(
             TraceEvent(
@@ -292,7 +290,7 @@ class CustomUnpickler(_Unpickler):
 
 
     def load_frame(self):
-        # calculate the start position of a frame
+        # Calculate the start position of the current frame.
         self.current_frame_idx = self._file.tell() + 8
         super().load_frame() # type: ignore
         frame_size, = struct.unpack("<Q", self.read_buf)
@@ -314,6 +312,6 @@ class CustomUnpickler(_Unpickler):
         super().load_memoize() # type: ignore
 
 
-    # maybe useless
+    # May be unnecessary, but useful while debugging.
     def flush_read_buf(self):
         self.read_buf = b""

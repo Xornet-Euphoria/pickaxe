@@ -19,5 +19,5 @@ if __name__ == "__main__":
         result = up.load()
 
     print(f"result: {result}")
-    print(f"trace saved to: {trace_path}")
+    print(f"Trace written to: {trace_path}")
     print(trace_path.read_text(encoding="utf-8").rstrip())

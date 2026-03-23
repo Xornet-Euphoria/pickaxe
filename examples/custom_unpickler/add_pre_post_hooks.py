@@ -2,13 +2,13 @@ from pickletools import OpcodeInfo
 from pickaxe import CustomUnpickler
 
 
-# define new hook function
+# Define custom hooks.
 class MyCustomUnpickler(CustomUnpickler):
     def pre_hook(self, op: OpcodeInfo, *, dump_stack=False):        
         super().pre_hook(op, dump_stack=dump_stack)
 
         if dump_stack and self.stack:
-            print("[+] custom pre hook: dump the element on the TOS")
+            print("[+] custom pre-hook: top of the stack")
             print(f"    TOS: {self.stack[-1]}")
 
 
@@ -16,7 +16,7 @@ class MyCustomUnpickler(CustomUnpickler):
         super().post_hook(op, dump_stack=dump_stack)
     
         if dump_stack and self.stack:
-            print("[+] custom post hook: dump the element on the TOS")
+            print("[+] custom post-hook: top of the stack")
             print(f"    TOS: {self.stack[-1]}")
 
 

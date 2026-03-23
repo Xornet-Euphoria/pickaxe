@@ -23,7 +23,7 @@ class Crafter:
         self._trace_state_valid = True
         self._has_explicit_stop = False
         self.forbidden_bytes = [b if isinstance(b, int) else b[0] for b in forbidden_bytes]
-        self.check_stop = check_stop  # reserved and not implemented yet
+        self.check_stop = check_stop  # Reserved for future use.
 
 
     @property
@@ -47,7 +47,7 @@ class Crafter:
         return self._trace_state_valid
 
 
-    # self.payload += b の wrapperに過ぎないが、オーバーライドしてデバッグに使うといった用途を考えている
+    # Thin wrapper around `self.payload += b`; kept overridable for debugging.
     def add_payload(self, b: bytes):
         self._append_payload(b)
         self._invalidate_trace_state()
@@ -61,8 +61,7 @@ class Crafter:
         self._has_explicit_stop = explicit_stop
 
 
-    # shorten?
-    # self.add_payload(pickle.<OP>) vs self.add_op("<OP>")
+    # Convenience wrapper around opcode lookup and payload emission.
     def add_op(self, op_str: OpStr):
         op = self._append_opcode(op_str)
         if op.arg is not None:
@@ -89,7 +88,7 @@ class Crafter:
         self.add_op("DUP")
 
 
-    # experimental
+    # Experimental convenience method.
     def push(self, x):
         if isinstance(x, bool):
             self.push_bool(x)
@@ -100,7 +99,7 @@ class Crafter:
         elif isinstance(x, bytes):
             self.push_bytes(x)
         else:
-            raise ValueError(f"not supported type for auto push: {type(x)}")
+            raise ValueError(f"unsupported type for automatic push: {type(x)}")
         
 
     def push_bool(self, b: bool):
@@ -127,7 +126,7 @@ class Crafter:
 
     def _push_small_number(self, n: int, check=False):
         if check and (n < -2**31 or 2**31-1 < n):
-            raise ValueError("small integer only")
+            raise ValueError("this helper only supports small integers")
         
         if n < 0 or 0xffff < n:
             self._append_opcode("BININT")
@@ -180,7 +179,7 @@ class Crafter:
             self._push_stack_value(s)
             return
 
-        # not tested
+        # Fallback for very large Unicode strings.
         if length < 2**64:
             self._append_opcode("BINUNICODE8")
             self._append_payload(length.to_bytes(8, "little"))
@@ -194,7 +193,7 @@ class Crafter:
     def _push_short_bytes(self, b: bytes):
         l = len(b)
         if l > 0xff:
-            raise ValueError("byte-length must be shorter than 0x100")
+            raise ValueError("byte length must be smaller than 0x100")
 
         self._append_opcode("SHORT_BINBYTES")
         self._add_number1(l)
@@ -213,7 +212,7 @@ class Crafter:
             self._push_stack_value(b)
 
 
-    # utils about list, tuple and dict
+    # Helpers for list, tuple, and dict payloads.
 
     def tuple(self):
         self.add_op("TUPLE")
@@ -230,7 +229,7 @@ class Crafter:
             else:
                 self.add_op("TUPLE3")
         else:
-            # todo: check whether MARK(@) is used in the payload
+            # TODO: verify that MARK is present in the payload when needed.
             self.tuple()
 
 
@@ -238,7 +237,7 @@ class Crafter:
         self.add_op("EMPTY_DICT")
 
 
-    # utils about objects that is not pickle-native (import, function and etc)
+    # Helpers for non-native pickle objects such as imports and callables.
 
     def import_from(self, module: str, name: str, *, use_stack=True):
         if use_stack:
@@ -246,9 +245,8 @@ class Crafter:
             self.push_str(name)
             self.add_op("STACK_GLOBAL")
         else:
-            # shorter than STACK_GLOBAL
-            # if other optimization techniques are used (for example, memoize frequently used strings)
-            # this method may not be effective
+            # Usually shorter than STACK_GLOBAL, although other optimizations
+            # such as memoizing frequently used strings can change the result.
             self._append_opcode("GLOBAL")
             self._append_payload(module.encode("utf-8"))
             self._add_newline()
@@ -266,7 +264,7 @@ class Crafter:
         self.add_op("REDUCE")
 
 
-    # simple wrappers
+    # Simple opcode wrappers.
 
     def stop(self):
         self.add_op("STOP")
@@ -278,16 +276,16 @@ class Crafter:
 
     def proto(self, proto=pickle.DEFAULT_PROTOCOL):
         if proto > 0xff:
-            raise ValueError("The protocol number must be 1 byte")
+            raise ValueError("the protocol number must fit in 1 byte")
         if proto < 0:
-            raise ValueError("The protocol number must not be a negative number")
+            raise ValueError("the protocol number must not be negative")
         
         self._append_opcode("PROTO")
         self._add_number1(proto)
 
 
-    # utils about memo
-    # todo: emulate memo and estimate index in memoize
+    # Helpers for memo-related operations.
+    # TODO: emulate memo growth and estimate the next index in memoize().
 
     def memoize(self):
         self.add_op("MEMOIZE")
@@ -333,7 +331,7 @@ class Crafter:
         self._memo[idx] = self._stack[-1]
 
 
-    # interfaces about payload
+    # Payload interfaces.
 
     def get_payload(self, check_stop=False, *, check_function=None) -> bytes:
         ret = self._payload
@@ -341,7 +339,7 @@ class Crafter:
             ret += pickle.STOP
 
         if check_function is not None and not check_function(ret):
-            raise ValueError("Payload check is not passed")
+            raise ValueError("payload check failed")
 
         return ret
 
@@ -351,7 +349,7 @@ class Crafter:
         return l + 1 if with_stop and not self._has_explicit_stop else l
 
 
-    # note: Unlike get_payload(), the default value of check_stop is True
+    # Unlike get_payload(), the default value of check_stop is True.
     def loads(self, check_stop=True, *, check_function=None):
         _payload = self.get_payload(check_stop, check_function=check_function)
 
@@ -359,8 +357,7 @@ class Crafter:
         return res
     
 
-    # experimental
-    # pickle.STOP is added.
+    # Experimental helper. pickle.STOP is added automatically when needed.
     def disassemble(self):
         pickletools.dis(self.get_payload(check_stop=True))
 
@@ -381,7 +378,7 @@ class Crafter:
         self._has_explicit_stop = False
 
 
-    # utils for internal
+    # Internal helpers.
     def _add_newline(self):
         self._append_payload(b"\n")
 
@@ -435,7 +432,7 @@ class Crafter:
                 items = self._stack[idx + 1:]
                 del self._stack[idx:]
                 return items
-        raise ValueError("MARK is not found in the traced stack")
+        raise ValueError("MARK was not found in the traced stack")
 
 
     def _pop_marked_items_with_target(self):
@@ -624,7 +621,7 @@ class Crafter:
             self._invalidate_trace_state()
 
 
-# the payload has only ascii-printable characters
+# Payloads built by this crafter contain only ASCII-printable characters.
 class AsciiCrafter(Crafter):
     def __init__(self, *, forbidden_bytes: list[bytes] | list[int] | None = None, check_stop=False) -> None:
         if forbidden_bytes is None:
@@ -634,7 +631,7 @@ class AsciiCrafter(Crafter):
         super().__init__(forbidden_bytes=forbidden_bytes, check_stop=check_stop)
 
 
-    # todo: rewrite some methods
+    # TODO: rewrite some methods.
     def push_bool(self, b: bool):
         self._append_opcode("INT")
         self._append_payload(b"01" if b else b"00")
@@ -649,7 +646,7 @@ class AsciiCrafter(Crafter):
         self._push_stack_value(n)
 
 
-    # not optimized
+    # Not optimized.
     def push_str(self, s: str):
         self._append_opcode("STRING")
         encoded = f"'{s}'".encode()
@@ -658,19 +655,19 @@ class AsciiCrafter(Crafter):
         self._push_stack_value(s)
 
 
-    # use_mark is ignored
+    # use_mark is ignored.
     def to_tuple(self, cnt: int = 0, use_mark: bool=True):
         self.tuple()
 
 
-    # use_stack is ignored
+    # use_stack is ignored.
     def import_from(self, module: str, name: str, *, use_stack=False):
         return super().import_from(module, name, use_stack=False)
 
 
 class UnicodeCrafter(Crafter):
-    # override this method
-    # because pickle.SHORT_BINUNICODE is b'\x8c' and may raise UnicodeDecodeError
+    # Override this because pickle.SHORT_BINUNICODE is b'\x8c' and may
+    # raise UnicodeDecodeError when the payload must stay UTF-8 decodable.
     def push_str(self, s: str):
         data = s.encode("utf-8")
         length = len(data)
@@ -690,7 +687,7 @@ class UnicodeCrafter(Crafter):
             return
 
 
-        # not tested
+        # Fallback for very large strings.
         self._append_opcode("STRING")
         self._append_payload(b"'")
         self._append_payload(data)
@@ -701,7 +698,7 @@ class UnicodeCrafter(Crafter):
 
     def stack_global(self):
         # u"\c293"
-        self.put_memo(0xc2)  # no effect to stack
+        self.put_memo(0xc2)  # Does not affect the stack.
         self._append_opcode("STACK_GLOBAL")
         self._apply_opcode(name_to_op["STACK_GLOBAL"])
 
@@ -713,6 +710,6 @@ class UnicodeCrafter(Crafter):
 
 
     def get_payload(self, check_stop=False, *, check_function=None) -> bytes:
-        # if payload is invalid bytes, this function raises UnicodeDecodeError
+        # If the payload is not valid UTF-8, this raises UnicodeDecodeError.
         check_function = lambda x: x.decode("utf-8")
         return super().get_payload(check_stop, check_function=check_function)

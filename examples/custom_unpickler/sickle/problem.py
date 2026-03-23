@@ -1,4 +1,5 @@
-# from :https://github.com/SECCON/SECCON2023_online_CTF/blob/main/reversing/Sickle/files/problem.py
+# Based on:
+# https://github.com/SECCON/SECCON2023_online_CTF/blob/main/reversing/Sickle/files/problem.py
 import pickle, io
 
 
@@ -7,6 +8,6 @@ f = io.BytesIO(payload)
 res = pickle.load(f)
 
 if isinstance(res, bool) and res:
-    print("Congratulations!!")
+    print("Congratulations!")
 else:
-    print("Nope")
+    print("Nope.")
