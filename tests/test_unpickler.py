@@ -52,6 +52,22 @@ def test_trace_filter_can_select_specific_opcode_events():
     assert trace.getvalue().splitlines() == [f"[{stop_pos}]: STOP"]
 
 
+def test_trace_filter_can_select_multiple_event_types():
+    trace = io.StringIO()
+    up = pickaxe.CustomUnpickler(
+        TEST_PAYLOAD,
+        trace_output=trace,
+        trace_events={"frame", "memo"},
+    )
+
+    assert up.load() == TEST_OBJECT
+
+    lines = trace.getvalue().splitlines()
+    assert len(lines) == 5
+    assert lines[0].startswith("  - frame size: ")
+    assert all("[NEW MEMO" in line for line in lines[1:])
+
+
 def test_breakpoint_default_hook_dumps_stack_and_memo():
     trace = io.StringIO()
     breakpoint_pos = find_opcode_position("SETITEMS")
