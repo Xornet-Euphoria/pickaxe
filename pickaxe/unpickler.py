@@ -1,28 +1,62 @@
+from dataclasses import dataclass
 from pickle import _Unpickler
 from pickletools import code2op, OpcodeInfo # type: ignore
-from typing import Any, Iterable, Callable, Self
-import io, pickle, struct
-from .pickle_opcode import change_stack, change_memo
+from typing import Any, Iterable, Callable, Self, Literal, TypeAlias
+import io, struct, sys
+from .pickle_opcode import change_stack
 
 # todo
 """
 - protocol for typing
 - abstraction of stack operations (push or pop)
-- abstraction of events
 - custom formatter for pre and post hook functions
 - settings (verbose, suppress long output)
 """
 
 
+TraceEventKind: TypeAlias = Literal["opcode", "stack_before", "stack_after", "memo", "frame", "breakpoint"]
+TraceOutput: TypeAlias = Callable[[str], None] | io.TextIOBase
+TraceFormatter: TypeAlias = Callable[["TraceEvent"], str | Iterable[str] | None]
+TRACE_EVENT_KINDS: set[TraceEventKind] = {"opcode", "stack_before", "stack_after", "memo", "frame", "breakpoint"}
+
+
+@dataclass(slots=True)
+class TraceEvent:
+    kind: TraceEventKind
+    ip: int
+    op: OpcodeInfo | None = None
+    stack: list[Any] | None = None
+    memo: dict[int, Any] | None = None
+    memo_index: int | None = None
+    memo_value: Any = None
+    frame_size: int | None = None
+
+
 class CustomUnpickler(_Unpickler):
     UnpicklerMethod = Callable[[Self], None]
 
-    def __init__(self, file, *, fix_imports: bool = True, encoding: str = "ASCII", errors: str = "strict", buffers: Iterable[Any] | None = None, custom_dispatch_table={}) -> None:
+    def __init__(
+        self,
+        file,
+        *,
+        fix_imports: bool = True,
+        encoding: str = "ASCII",
+        errors: str = "strict",
+        buffers: Iterable[Any] | None = None,
+        custom_dispatch_table: dict[int, UnpicklerMethod] | None = None,
+        trace_output: TraceOutput | None = None,
+        trace_ops: Iterable[str] | None = None,
+        trace_events: Iterable[TraceEventKind] | None = None,
+        trace_formatter: TraceFormatter | None = None,
+    ) -> None:
         if isinstance(file, bytes) or isinstance(file, bytearray):
             file = io.BytesIO(file)
 
+        if custom_dispatch_table is None:
+            custom_dispatch_table = {}
+
         # typing
-        self.dispatch: dict[int, Callable[[Self], None]]
+        self.dispatch = {opcode: original_f for opcode, original_f in _Unpickler.dispatch.items()}
         self.stack: list[Any]
         self.memo: dict[int, Any]
 
@@ -31,11 +65,15 @@ class CustomUnpickler(_Unpickler):
         self.current_frame_idx = 0  # used for calculation of the index
         self._breakpoint_table = {}
         self._ip = 0
+        self._current_op: OpcodeInfo | None = None
 
         self.read_buf: bytes = b""
         self._memo_ctx: tuple[int, Any] | None = None
+        self._trace_formatter = trace_formatter or self.format_trace_event
 
-        self.original_dispatch = {opcode: original_f for opcode, original_f in _Unpickler.dispatch.items()}
+        self.original_dispatch = self.dispatch.copy()
+        self.set_trace_output(trace_output)
+        self.set_trace_filter(ops=trace_ops, events=trace_events)
 
         self.create_custom_dispatch_table(defined_table=custom_dispatch_table)
 
@@ -62,9 +100,82 @@ class CustomUnpickler(_Unpickler):
 
     def set_hook(self, key: int, func: UnpicklerMethod) -> None:
         self.dispatch[key] = func
+
+
+    def set_trace_output(self, output: TraceOutput | None) -> None:
+        self._trace_output = sys.stdout if output is None else output
+
+
+    def set_trace_filter(self, *, ops: Iterable[str] | None = None, events: Iterable[TraceEventKind] | None = None) -> None:
+        normalized_events = None if events is None else set(events)
+        if normalized_events is not None:
+            unknown_events = normalized_events - TRACE_EVENT_KINDS
+            if unknown_events:
+                raise ValueError(f"unknown trace event kind(s): {sorted(unknown_events)}")
+
+        self._trace_ops = None if ops is None else {op.upper() for op in ops}
+        self._trace_events = normalized_events
+
+
+    def should_emit_trace_event(self, event: TraceEvent) -> bool:
+        if self._trace_events is not None and event.kind not in self._trace_events:
+            return False
+
+        if self._trace_ops is not None:
+            if event.op is None or event.op.name not in self._trace_ops:
+                return False
+
+        return True
+
+
+    def emit_trace_event(self, event: TraceEvent) -> None:
+        if not self.should_emit_trace_event(event):
+            return
+
+        lines = self._trace_formatter(event)
+        if lines is None:
+            return
+
+        if isinstance(lines, str):
+            lines = [lines]
+
+        for line in lines:
+            if callable(self._trace_output):
+                self._trace_output(line)
+            else:
+                self._trace_output.write(f"{line}\n")
+
+
+    def format_trace_event(self, event: TraceEvent):
+        if event.kind == "opcode":
+            return f"[{event.ip}]: {event.op.name}"
+
+        if event.kind == "stack_before":
+            return f"  - [STACK (before)]: {event.stack}"
+
+        if event.kind == "stack_after":
+            return f"  - [STACK (after)]: {event.stack}"
+
+        if event.kind == "memo":
+            return f"  - [NEW MEMO ({event.memo_index})]: {event.memo_value}"
+
+        if event.kind == "frame":
+            return f"  - frame size: {event.frame_size}"
+
+        if event.kind == "breakpoint":
+            return [
+                f"[BREAKPOINT] {event.ip}",
+                f"  - [STACK]: {event.stack}",
+                f"  - [MEMO]: {event.memo}",
+            ]
+
+        raise ValueError(f"unsupported trace event kind: {event.kind}")
     
 
-    def create_custom_dispatch_table(self, *, defined_table: dict[int, UnpicklerMethod]={}):
+    def create_custom_dispatch_table(self, *, defined_table: dict[int, UnpicklerMethod] | None = None):
+        if defined_table is None:
+            defined_table = {}
+
         for opcode in _Unpickler.dispatch:
             # get overwridden method
             original_method = self.original_dispatch[opcode]
@@ -85,7 +196,6 @@ class CustomUnpickler(_Unpickler):
         def hook(self: Self):
             op = code2op[chr(key)]
             dump_stack = change_stack(op)
-            dump_memo = change_memo(op)
 
             unframer = self._unframer # type: ignore
             current_frame = unframer.current_frame
@@ -95,6 +205,7 @@ class CustomUnpickler(_Unpickler):
             ip -= 1  # subtract size of opcode
 
             self._ip = ip
+            self._current_op = op
 
             if self._ip in self._breakpoint_table:
                 self._breakpoint_table[self.ip](self)
@@ -110,19 +221,27 @@ class CustomUnpickler(_Unpickler):
     # override this
     def pre_hook(self, op: OpcodeInfo, *,
                          dump_stack=False):
-        print(f"[{self._ip}]: {op.name}")
+        self.emit_trace_event(TraceEvent(kind="opcode", ip=self._ip, op=op))
         if dump_stack:
-            print(f"  - [STACK (before)]: {self.stack}")
+            self.emit_trace_event(TraceEvent(kind="stack_before", ip=self._ip, op=op, stack=list(self.stack)))
 
     # if you want to set a custom post-hook function
     # override this
     def post_hook(self, op: OpcodeInfo, *,
                           dump_stack=False):
         if dump_stack:
-            print(f"  - [STACK (after)]: {self.stack}")
+            self.emit_trace_event(TraceEvent(kind="stack_after", ip=self._ip, op=op, stack=list(self.stack)))
 
         if self._memo_ctx is not None:
-            print(f"  - [NEW MEMO ({self._memo_ctx[0]})]: {self._memo_ctx[1]}")
+            self.emit_trace_event(
+                TraceEvent(
+                    kind="memo",
+                    ip=self._ip,
+                    op=op,
+                    memo_index=self._memo_ctx[0],
+                    memo_value=self._memo_ctx[1],
+                )
+            )
             self._memo_ctx = None
 
 
@@ -156,13 +275,20 @@ class CustomUnpickler(_Unpickler):
 
     # if you want to set custom hook function, override this
     def breakpoint_hook(self):
-        print(f"[BREAKPOINT] {self._ip}")
+        self.emit_trace_event(
+            TraceEvent(
+                kind="breakpoint",
+                ip=self._ip,
+                op=self._current_op,
+                stack=list(self.stack),
+                memo=dict(self.memo),
+            )
+        )
 
 
     @staticmethod
     def default_breakpoint_hook(_self):
-        print(f"[BREAKPOINT] {_self.ip}")
-        print("[*] currently, this hook does nothing")
+        _self.breakpoint_hook()
 
 
     def load_frame(self):
@@ -170,7 +296,14 @@ class CustomUnpickler(_Unpickler):
         self.current_frame_idx = self._file.tell() + 8
         super().load_frame() # type: ignore
         frame_size, = struct.unpack("<Q", self.read_buf)
-        print(f"  - frame size: {frame_size}")
+        self.emit_trace_event(
+            TraceEvent(
+                kind="frame",
+                ip=self._ip,
+                op=self._current_op,
+                frame_size=frame_size,
+            )
+        )
 
 
     def load_memoize(self):
