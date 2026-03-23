@@ -138,6 +138,7 @@ class Crafter:
             self.add_payload(pickle.BINUNICODE8)
             self.add_payload(length.to_bytes(8, "little"))
             self.add_payload(data)
+            return
 
         raise ValueError(f"Too long string ({length} bytes)")
 
@@ -240,7 +241,11 @@ class Crafter:
             self._add_number1(idx)
             return
 
-        # todo: pickle.LONGBINGET
+        if idx < 2**32:
+            self.add_payload(pickle.LONG_BINGET)
+            self._add_number4(idx)
+            return
+
         self.add_payload(pickle.GET)
         self._add_number(idx)
         self._add_newline()
