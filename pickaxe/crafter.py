@@ -4,18 +4,32 @@ from .pickle_opcode import name_to_op, OpStr
 
 
 class Crafter:
-    def __init__(self, *, forbidden_bytes: list[bytes] | list[int]=[], check_stop=False) -> None:
-        self.payload = b""
+    def __init__(self, *, forbidden_bytes: list[bytes] | list[int] | None=None, check_stop=False) -> None:
+        if forbidden_bytes is None:
+            forbidden_bytes = []
+
+        self._payload = b""
+        self._has_explicit_stop = False
         self.forbidden_bytes = [b if isinstance(b, int) else b[0] for b in forbidden_bytes]
         self.check_stop = check_stop  # reserved and not implemented yet
 
 
+    @property
+    def payload(self) -> bytes:
+        return self._payload
+
+
     # self.payload += b の wrapperに過ぎないが、オーバーライドしてデバッグに使うといった用途を考えている
     def add_payload(self, b: bytes):
+        self._append_payload(b)
+
+
+    def _append_payload(self, b: bytes, *, explicit_stop=False):
         for _b in b:
             if _b in self.forbidden_bytes:
                 raise ValueError(f"{_b.to_bytes(1, 'little')} is forbidden")
-        self.payload += b
+        self._payload += b
+        self._has_explicit_stop = explicit_stop
 
 
     # shorten?
@@ -24,7 +38,7 @@ class Crafter:
         op_str = op_str.upper()  # type: ignore
         if op_str not in name_to_op:
             raise ValueError(f"{op_str} is not a pickle opcode")
-        self.add_payload(name_to_op[op_str].code.encode("latin-1"))
+        self._append_payload(name_to_op[op_str].code.encode("latin-1"), explicit_stop=op_str == "STOP")
 
 
     def pop(self):
@@ -196,7 +210,7 @@ class Crafter:
     # simple wrappers
 
     def stop(self):
-        self.add_payload(pickle.STOP)
+        self._append_payload(pickle.STOP, explicit_stop=True)
 
 
     def mark(self):
@@ -254,10 +268,9 @@ class Crafter:
     # interfaces about payload
 
     def get_payload(self, check_stop=False, *, check_function=None) -> bytes:
-        ret = self.payload
-        if check_stop:
-            if ret[-1] != pickle.STOP[0]:
-                ret += pickle.STOP
+        ret = self._payload
+        if check_stop and not self._has_explicit_stop:
+            ret += pickle.STOP
 
         if check_function is not None and not check_function(ret):
             raise ValueError("Payload check is not passed")
@@ -266,8 +279,8 @@ class Crafter:
 
 
     def get_length(self, with_stop: bool=False) -> int:
-        l = len(self.payload)
-        return l + 1 if with_stop else l
+        l = len(self._payload)
+        return l + 1 if with_stop and not self._has_explicit_stop else l
 
 
     # note: Unlike get_payload(), the default value of check_stop is True
@@ -293,7 +306,8 @@ class Crafter:
 
 
     def clear(self):
-        self.payload = b""
+        self._payload = b""
+        self._has_explicit_stop = False
 
 
     # utils for internal
@@ -323,7 +337,10 @@ class Crafter:
 
 # the payload has only ascii-printable characters
 class AsciiCrafter(Crafter):
-    def __init__(self, *, forbidden_bytes: list[bytes] | list[int] = [], check_stop=False) -> None:
+    def __init__(self, *, forbidden_bytes: list[bytes] | list[int] | None = None, check_stop=False) -> None:
+        if forbidden_bytes is None:
+            forbidden_bytes = []
+
         forbidden_bytes += [b.to_bytes(1, "little") for b in range(0x80, 0x100)]  # type: ignore
         super().__init__(forbidden_bytes=forbidden_bytes, check_stop=check_stop)
 
