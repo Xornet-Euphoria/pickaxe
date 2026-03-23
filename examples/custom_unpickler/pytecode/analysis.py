@@ -8,7 +8,7 @@ hex_code = "8c0574797065738c0c46756e6374696f6e547970659372390500008c057479706573
 functions = {}
 prev_f_idx = -1
 
-# extract code objects
+# Extract code objects.
 class PytecodeUnpickler(CustomUnpickler):
     def load_reduce(self):
         f: types.FunctionType = self.stack[-2]

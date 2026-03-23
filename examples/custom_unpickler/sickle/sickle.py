@@ -2,8 +2,8 @@ from pickaxe import CustomUnpickler
 import io
 
 
-# globals() in CustomUnpickler doesn't have 'f' (io.BytesIO(payload)) and raise an exception
-# so setting this by breakpoint
+# globals() inside CustomUnpickler does not contain `f` (io.BytesIO(payload)),
+# so we inject it at a breakpoint.
 class SickleUnpickler(CustomUnpickler):
     def breakpoint_hook(self):
         if self.ip == 113:
@@ -15,7 +15,7 @@ if __name__ == "__main__":
     f = io.BytesIO(payload)
     up = SickleUnpickler(f)
 
-    # if no breakpoints set, some exception are raised
+    # Without this breakpoint, the payload raises an exception.
     up.set_breakpoint(113)
     res = up.load()
-    print(res)  # it works!!
+    print(res)  # This works.

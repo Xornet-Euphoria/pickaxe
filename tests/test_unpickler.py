@@ -35,7 +35,7 @@ def test_trace_output_can_be_redirected_and_reports_core_events():
     assert "frame size:" in output
     assert "[STACK (before)]" in output
     assert "[STACK (after)]" in output
-    assert "[NEW MEMO" in output
+    assert "[MEMO (" in output
 
 
 def test_trace_filter_can_select_specific_opcode_events():
@@ -65,7 +65,7 @@ def test_trace_filter_can_select_multiple_event_types():
     lines = trace.getvalue().splitlines()
     assert len(lines) == 5
     assert lines[0].startswith("  - frame size: ")
-    assert all("[NEW MEMO" in line for line in lines[1:])
+    assert all("[MEMO (" in line for line in lines[1:])
 
 
 def test_breakpoint_default_hook_dumps_stack_and_memo():

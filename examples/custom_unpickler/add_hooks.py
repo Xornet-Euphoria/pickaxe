@@ -1,16 +1,16 @@
 from pickaxe import CustomUnpickler
 
 
-# define new hook function
-# don't forget using original method
+# Define a custom hook.
+# Do not forget to call the original method.
 class MyCustomUnpickler(CustomUnpickler):
     def load_proto(self):
-        print("trigger custom hook")
+        print("Custom hook triggered")
         super().load_proto()
 
-        # get protocol number from reading bytes
+        # Read the protocol number from the most recent bytes.
         proto = int.from_bytes(self.read_buf, "little")
-        print(f"  - proto: {proto}")
+        print(f"  - protocol: {proto}")
 
 
 if __name__ == "__main__":
