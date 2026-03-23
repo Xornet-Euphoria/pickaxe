@@ -1,3 +1,4 @@
+import builtins
 import pickle
 import pickaxe
 
@@ -72,3 +73,39 @@ def test_import_from():
     crafter = pickaxe.Crafter()
     crafter.import_from("builtins", "id")
     assert crafter.loads() == id
+
+
+def test_push_str_uses_binunicode8_for_large_lengths(monkeypatch):
+    fake_data = b"payload"
+
+    class HugeUtf8Str(str):
+        def encode(self, encoding="utf-8", errors="strict"):
+            return fake_data
+
+    real_len = builtins.len
+
+    def fake_len(obj):
+        if obj is fake_data:
+            return 2**32
+        return real_len(obj)
+
+    monkeypatch.setattr(builtins, "len", fake_len)
+
+    crafter = pickaxe.Crafter()
+    crafter.push_str(HugeUtf8Str("ignored"))
+
+    assert crafter.payload == pickle.BINUNICODE8 + (2**32).to_bytes(8, "little") + fake_data
+
+
+def test_get_memo_uses_long_binget_for_large_indices():
+    crafter = pickaxe.Crafter()
+    crafter.get_memo(0x100)
+
+    assert crafter.payload == pickle.LONG_BINGET + (0x100).to_bytes(4, "little")
+
+
+def test_get_memo_falls_back_to_text_get_for_very_large_indices():
+    crafter = pickaxe.Crafter()
+    crafter.get_memo(2**32)
+
+    assert crafter.payload == pickle.GET + b"4294967296\n"
